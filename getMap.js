@@ -1,4 +1,3 @@
-//init map
 const platform = new H.service.Platform({
     apikey: "wQndyHdPqoKFF6eE1ei474ph9GxP7ChUlA06sbeeQjQ",
 });
@@ -13,20 +12,27 @@ const map = new H.Map(
     }
 );
 
+// Create the default UI components and store ui variable globally
+const ui = H.ui.UI.createDefault(map, defaultLayers);
 // MapEvents enables the event system.
 const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
-
-// Enable dynamic resizing
 window.addEventListener("resize", () => map.getViewPort().resize());
 
-const segmentColors = ["#FF0000", "#00FF00", "#0000FF", "#FFA500", "#800080"];
+const routeHighlightStyling = {
+    lineWidth: 5,
+    strokeColor: "#FFFF00",
+};
 
 let currentRouteGroup = null;
+let currPopUp = null;
 
 function calculateRoute(origin, destination, waypoints = []) {
     if (currentRouteGroup) {
         map.removeObject(currentRouteGroup);
     }
+
+    // Define allPoints array here
+    const allPoints = [origin, ...waypoints, destination];
 
     const waypointMarkers = [];
     const routingParameters = {
@@ -34,20 +40,20 @@ function calculateRoute(origin, destination, waypoints = []) {
         transportMode: "car",
         origin: `${origin.lat},${origin.lng}`,
         destination: `${destination.lat},${destination.lng}`,
-        return: "polyline",
+        return: "polyline,summary", // Add summary to get distance and duration
     };
 
-    // Add waypoints if provided
     if (waypoints.length > 0) {
         routingParameters.via = new H.service.Url.MultiValueQueryParameter(
             waypoints.map((wp) => `${wp.lat},${wp.lng}`)
         );
 
-        waypoints.forEach((waypoint) => {
+        waypoints.forEach((waypoint, index) => {
             const waypointMarker = new H.map.Marker({
                 lat: waypoint.lat,
                 lng: waypoint.lng,
             });
+            waypointMarker.setData(`Waypoint ${index + 1}`);
             waypointMarkers.push(waypointMarker);
         });
     }
@@ -55,47 +61,131 @@ function calculateRoute(origin, destination, waypoints = []) {
     const onResult = function (result) {
         if (result.routes.length) {
             const group = new H.map.Group();
+
             // Process each section of the route
             result.routes[0].sections.forEach((section, index) => {
-                // Create a linestring for this section
                 const lineString = H.geo.LineString.fromFlexiblePolyline(
                     section.polyline
                 );
-
-                // Create a polyline with a unique color for this section
                 const routeLine = new H.map.Polyline(lineString, {
                     style: {
-                        strokeColor:
-                            segmentColors[index % segmentColors.length],
+                        strokeColor: "grey",
                         lineWidth: 3,
                     },
                 });
+                const routeData = {
+                    distance: section.summary.length / 1000, // km
+                    duration: Math.round(section.summary.duration / 60), // minutes
+                    index: index,
+                    polyline: lineString,
+                    startPnt: allPoints[index],
+                    endPnt: allPoints[index + 1],
+                };
+                routeLine.setData(routeData);
+
+                routeLine.addEventListener("pointerenter", onEnter);
+                routeLine.addEventListener("pointerleave", onLeave);
+                routeLine.addEventListener("tap", onClick);
 
                 group.addObject(routeLine);
             });
-            // Add markers
+
             const startMarker = new H.map.Marker(origin);
+            startMarker.setData("Origin");
             const endMarker = new H.map.Marker(destination);
-            // Add all objects to the group
+            endMarker.setData("Destination");
+
             group.addObjects([startMarker, endMarker, ...waypointMarkers]);
-            // Store the current route group
             currentRouteGroup = group;
-            // Add the group to the map
             map.addObject(group);
-            // Set the map viewport to make the entire route visible
+
             map.getViewModel().setLookAtData({
                 bounds: group.getBoundingBox(),
             });
         }
     };
 
-    // Get routing service and calculate route
     const router = platform.getRoutingService(null, 8);
     router.calculateRoute(routingParameters, onResult, function (error) {
         alert(error.message);
     });
 }
 
+function onEnter(event) {
+    const polyline = event.target;
+    const ogStyle = polyline.getStyle();
+    polyline.setData({
+        ...polyline.getData(),
+        ogStyle: ogStyle,
+    });
+    polyline.setStyle(routeHighlightStyling);
+}
+
+function onLeave(event) {
+    const polyline = event.target;
+    const data = polyline.getData();
+    if (data.ogStyle) {
+        polyline.setStyle(data.ogStyle);
+    }
+}
+
+function onClick(event) {
+    if (currPopUp) {
+        ui.removeBubble(currPopUp);
+        currPopUp = null;
+    }
+    const polyline = event.target;
+    const data = polyline.getData();
+
+    // clicked coordinates
+    const coord = map.screenToGeo(
+        event.currentPointer.viewportX,
+        event.currentPointer.viewportY
+    );
+
+    // route descript.
+    let segmentDescription = "";
+    if (data.index === 0) {
+        segmentDescription =
+            "Origin to " +
+            (waypoints.length > 0 ? "First Waypoint" : "Destination");
+    } else if (data.index === waypoints.length) {
+        segmentDescription = "Last Waypoint to Destination";
+    } else {
+        segmentDescription = `Waypoint ${data.index} to Waypoint ${
+            data.index + 1
+        }`;
+    }
+    const routeInfo = `
+        <div style="padding: 10px; min-width: 200px;">
+            <h4 style="margin: 0 0 8px 0;">${segmentDescription}</h4>
+            <p style="margin: 4px 0;"><strong>From:</strong> ${formatCoordinates(
+                data.startPnt
+            )}</p>
+            <p style="margin: 4px 0;"><strong>To:</strong> ${formatCoordinates(
+                data.endPnt
+            )}</p>
+            <p style="margin: 4px 0;">Distance: ${data.distance.toFixed(
+                2
+            )} km</p>
+            <p style="margin: 4px 0;">Duration: ${data.duration} minutes</p>
+        </div>`;
+
+    currPopUp = new H.ui.InfoBubble(coord, {
+        content: routeInfo,
+    });
+    ui.addBubble(currPopUp);
+}
+
+function formatCoordinates(point) {
+    return `(${point.lat.toFixed(4)}, ${point.lng.toFixed(4)})`;
+}
+
+function addRoute(origin = {}, destination = {}, waypoints = []) {
+    calculateRoute(origin, destination, waypoints);
+}
+
+// example coordinates
 const origin = { lat: 33.7756, lng: -84.3963 };
 const destination = { lat: 33.9232, lng: -84.3408 };
 const waypoints = [
@@ -103,9 +193,4 @@ const waypoints = [
     { lat: 33.8218, lng: -84.3785 },
 ];
 
-function addRoute(origin = {}, destination = {}, waypoints = []) {
-    calculateRoute(origin, destination, waypoints);
-}
-
-// Call addRoute with the example coordinates
 addRoute(origin, destination, waypoints);
