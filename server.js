@@ -7,7 +7,7 @@ const client = new Client({
     user: 'postgres',
     host: 'localhost',
     database: 'accidents',
-    password: 'iamcharlie',
+    password: 'ace109182',
     port: 5432,
 });
 
@@ -34,7 +34,7 @@ app.post('/collisions', async (req, res) => {
     try {
         // Fixed query with proper parameterization and correct coordinate order
         const query = `
-            SELECT "Collision ID", "Lat", "Long", "Date and Time"
+            SELECT "Collision ID", "Lat", "Long", "Date and Time", "KABCO Severity"
             FROM collisions
             WHERE ST_Intersects(
                 ST_SetSRID(ST_GeomFromGeoJSON($1), 4326),
@@ -42,7 +42,7 @@ app.post('/collisions', async (req, res) => {
             );
         `;
         queryString = `
-            SELECT "Collision ID", "Lat", "Long"
+            SELECT "Collision ID", "Lat", "Long", "Date and Time", "KABCO Severity"
             FROM collisions
             WHERE ST_Intersects(
                 ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(geom)}'), 4326),
