@@ -7,7 +7,7 @@ const client = new Client({
     user: 'postgres',
     host: 'localhost',
     database: 'accidents',
-    password: 'ace109182',
+    password: 'iamcharlie',
     port: 5432,
 });
 
@@ -180,6 +180,8 @@ app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log('Available routes:');
     console.log('  POST /collisions');
+    console.log('  POST /collisionsByHour');
+    console.log('  POST /collisionsByDayOfWeek');
     console.log('  GET /test');
 });
 
