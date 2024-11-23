@@ -1,3 +1,4 @@
+console.log(d3.version);
 const platform = new H.service.Platform({
     apikey: "wQndyHdPqoKFF6eE1ei474ph9GxP7ChUlA06sbeeQjQ",
 });
@@ -30,28 +31,29 @@ function calculateRoute(origin, destination, waypoints = []) {
     if (currentRouteGroup) {
         map.removeObject(currentRouteGroup);
     }
-
     // Define allPoints array here
     const allPoints = [origin, ...waypoints, destination];
-
+    const colorScale = d3
+        .scaleSequential(d3.interpolateReds)
+        .domain([0, Math.max(...allPoints.map((p) => p.accident_count || 0))]);
     const waypointMarkers = [];
     const routingParameters = {
         routingMode: "fast",
         transportMode: "car",
-        origin: `${origin.lat},${origin.lng}`,
-        destination: `${destination.lat},${destination.lng}`,
+        origin: `${origin.latitude},${origin.longitude}`,
+        destination: `${destination.latitude},${destination.longitude}`,
         return: "polyline,summary", // Add summary to get distance and duration
     };
 
     if (waypoints.length > 0) {
         routingParameters.via = new H.service.Url.MultiValueQueryParameter(
-            waypoints.map((wp) => `${wp.lat},${wp.lng}`)
+            waypoints.map((wp) => `${wp.latitude},${wp.longitude}`)
         );
 
         waypoints.forEach((waypoint, index) => {
             const waypointMarker = new H.map.Marker({
-                lat: waypoint.lat,
-                lng: waypoint.lng,
+                lat: waypoint.latitude,
+                lng: waypoint.longitude,
             });
             waypointMarker.setData(`Waypoint ${index + 1}`);
             waypointMarkers.push(waypointMarker);
@@ -67,12 +69,6 @@ function calculateRoute(origin, destination, waypoints = []) {
                 const lineString = H.geo.LineString.fromFlexiblePolyline(
                     section.polyline
                 );
-                const routeLine = new H.map.Polyline(lineString, {
-                    style: {
-                        strokeColor: "grey",
-                        lineWidth: 3,
-                    },
-                });
                 const routeData = {
                     distance: section.summary.length / 1000, // km
                     duration: Math.round(section.summary.duration / 60), // minutes
@@ -80,7 +76,15 @@ function calculateRoute(origin, destination, waypoints = []) {
                     polyline: lineString,
                     startPnt: allPoints[index],
                     endPnt: allPoints[index + 1],
+                    waypoints: waypoints,
+                    accident_count: allPoints[index]?.accident_count || 0,
                 };
+                const routeLine = new H.map.Polyline(lineString, {
+                    style: {
+                        strokeColor: colorScale(routeData.accident_count),
+                        lineWidth: 3,
+                    },
+                });
                 routeLine.setData(routeData);
 
                 routeLine.addEventListener("pointerenter", onEnter);
@@ -90,9 +94,15 @@ function calculateRoute(origin, destination, waypoints = []) {
                 group.addObject(routeLine);
             });
 
-            const startMarker = new H.map.Marker(origin);
+            const startMarker = new H.map.Marker({
+                lat: origin.latitude,
+                lng: origin.longitude,
+            });
             startMarker.setData("Origin");
-            const endMarker = new H.map.Marker(destination);
+            const endMarker = new H.map.Marker({
+                lat: destination.latitude,
+                lng: destination.longitude,
+            });
             endMarker.setData("Destination");
 
             group.addObjects([startMarker, endMarker, ...waypointMarkers]);
@@ -136,6 +146,7 @@ function onClick(event) {
     }
     const polyline = event.target;
     const data = polyline.getData();
+    const waypoints = data.waypoints;
 
     // clicked coordinates
     const coord = map.screenToGeo(
@@ -165,6 +176,9 @@ function onClick(event) {
             <p style="margin: 4px 0;"><strong>To:</strong> ${formatCoordinates(
                 data.endPnt
             )}</p>
+            <p style="margin: 0 0 8px 0;"><strong>Accidents</strong>: ${
+                data.accident_count
+            }</p>
             <p style="margin: 4px 0;">Distance: ${data.distance.toFixed(
                 2
             )} km</p>
@@ -178,19 +192,63 @@ function onClick(event) {
 }
 
 function formatCoordinates(point) {
-    return `(${point.lat.toFixed(4)}, ${point.lng.toFixed(4)})`;
+    console.log(point);
+    return `(${point.latitude.toFixed(4)}, ${point.longitude.toFixed(4)})`;
 }
 
-function addRoute(origin = {}, destination = {}, waypoints = []) {
+function addRoute(feats) {
+    const features = feats["features"];
+    const origin = features[0]["properties"];
+    const destination = features[features.length - 1]["properties"];
+    const waypoints = features
+        .slice(1, -1)
+        .map((feature) => feature["properties"]);
+    console.log(waypoints);
     calculateRoute(origin, destination, waypoints);
 }
 
 // example coordinates
-const origin = { lat: 33.7756, lng: -84.3963 };
-const destination = { lat: 33.9232, lng: -84.3408 };
-const waypoints = [
-    { lat: 33.7916, lng: -84.3983 },
-    { lat: 33.8218, lng: -84.3785 },
-];
+// const origin = { lat: 33.7756, lng: -84.3963 };
+// const destination = { lat: 33.9232, lng: -84.3408 };
+// const waypoints = [
+//     { lat: 33.7916, lng: -84.3983 },
+//     { lat: 33.8218, lng: -84.3785 },
+// ];
+const features = {
+    features: [
+        {
+            type: "Feature",
+            properties: {
+                latitude: 33.37476,
+                longitude: -84.79956,
+                accident_count: 279,
+            },
+        },
+        {
+            type: "Feature",
+            properties: {
+                latitude: 33.85436,
+                longitude: -83.93324,
+                accident_count: 23,
+            },
+        },
+        {
+            type: "Feature",
+            properties: {
+                latitude: 32.97327,
+                longitude: -82.80873,
+                accident_count: 115,
+            },
+        },
+        {
+            type: "Feature",
+            properties: {
+                latitude: 33.6555,
+                longitude: -84.40319,
+                accident_count: 125,
+            },
+        },
+    ],
+};
 
-addRoute(origin, destination, waypoints);
+addRoute(features);
