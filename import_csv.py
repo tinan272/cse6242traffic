@@ -6,7 +6,7 @@ password = "iamcharlie" #input password
 host = "localhost" #default
 port = "5432" #default
 # Create a connection to PostgreSQL
-engine = create_engine('postgresql://${username}:${password}@${host}:${port}/accidents')
+engine = create_engine(f"postgresql://{username}:{password}@{host}:{port}/accidents")
 
 # Process the dataset in chunks
 chunk_size = 10000  # Define chunk size
