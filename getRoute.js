@@ -27,7 +27,7 @@ async function fetchAPI(url) {
 async function getRoute() {
     const versionNumber = "1";
     const routePlanningLocations =
-        "34.00635229451376,-84.42516328702436:33.7771539546755,-84.39581511485409"; // need >=2 locations. Values: colon-delimited generalizedLocations.
+        "34.00635229451376,-84.42516328702436:34.0533754844467,-84.45465522830254"; // need >=2 locations. Values: colon-delimited generalizedLocations.
     const contentType = "json";
     const alternativeRoutes = 3;
     const alternativeType = "betterRoute";
@@ -69,7 +69,7 @@ async function getTrafficFlowSegment() {
     const trafficStyle = "absolute"; // "absolute" = given absolute speed values, "relative"=free-flow speed, "reduced-sensitivity" = reduces effect of minor changes in flow
     const trafficZoom = "10"; // 0..22
     const trafficFormat = "json";
-    const trafficPoint = "52.41072,4.84239"; //long,lag
+    const trafficPoint = "33.74793040982444,-84.38614391867895"; //long,lag
     const trafficUnit = "MPH"; //or kmph
     const url = `https://${baseURL}/traffic/services/${versionNumber}/flowSegmentData/${trafficStyle}/${trafficZoom}/${trafficFormat}?key=${apiKey}&point=${trafficPoint}`;
     try {
@@ -131,11 +131,78 @@ async function getAccidentsOnRoute(route) {
       }
 }
 
+async function getAccidentsOnRouteByHour(route) {
+    const data = route.routes
+    const main = data[0]
+    const first_main_leg = main.legs[0].points
+    console.log(first_main_leg)
+    const coordinates = first_main_leg.map(dict => Object.values(dict));
+    var routeLine = turf.lineString(coordinates)
+    var buffered = turf.buffer(routeLine, 0.038, { units: "kilometers" });
+    console.log(buffered)
+    var geom = JSON.stringify(buffered.geometry)
+    try {
+        const response = await fetch(`http://localhost:3000/collisionsByHour`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: geom
+        });
+    
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+    
+        const data = await response.json();
+        console.log('Collisions By Hour/:', data);
+        return data;
+      } catch (error) {
+        console.error('Error fetching collisions:', error);
+      }
+}
+
+async function getAccidentsOnRouteByDayOfWeek(route) {
+    const data = route.routes
+    const main = data[0]
+    const first_main_leg = main.legs[0].points
+    console.log(first_main_leg)
+    const coordinates = first_main_leg.map(dict => Object.values(dict));
+    var routeLine = turf.lineString(coordinates)
+    var buffered = turf.buffer(routeLine, 0.038, { units: "kilometers" });
+    console.log(buffered)
+    var geom = JSON.stringify(buffered.geometry)
+    try {
+        const response = await fetch(`http://localhost:3000/collisionsByDayOfWeek`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: geom
+        });
+    
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+    
+        const data = await response.json();
+        console.log('Collisions By Day of Week/:', data);
+        return data;
+      } catch (error) {
+        console.error('Error fetching collisions:', error);
+      }
+}
+
+
 async function main() {
     try {
-        await getTrafficFlowSegment();
+        var flowData = await getTrafficFlowSegment();
         const routeData = await getRoute();
-        await getAccidentsOnRoute(routeData);
+        var accidentsData = await getAccidentsOnRoute(routeData);
+        var accidentsByHour = await getAccidentsOnRouteByHour(routeData);
+        var accidentsByDOW = await getAccidentsOnRouteByDayOfWeek(routeData);
     } catch (error) {
         console.error("Error in main execution:", error);
     }
