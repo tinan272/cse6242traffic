@@ -41,15 +41,109 @@ app.post('/collisions', async (req, res) => {
                 ST_SetSRID(ST_MakePoint("Lat", "Long"), 4326)
             );
         `;
-        queryString = `
-            SELECT "Collision ID", "Lat", "Long", "Date and Time", "KABCO Severity"
+        // queryString = `
+        //     SELECT "Collision ID", "Lat", "Long", "Date and Time", "KABCO Severity"
+        //     FROM collisions
+        //     WHERE ST_Intersects(
+        //         ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(geom)}'), 4326),
+        //         ST_SetSRID(ST_MakePoint("Lat", "Long"), 4326)
+        //     );
+        // `
+        // console.log(queryString)
+        const result = await client.query(query, [JSON.stringify(geom)]);
+        
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('X-Total-Count', result.rows.length);
+        
+        res.json(result.rows);
+
+    } catch (err) {
+        console.error('Error querying the database:', err);
+        
+        // More detailed error handling
+        if (err.code === '22P02' || err.code === '22023') {
+            return res.status(400).send('Invalid geometry format');
+        }
+        
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// POST endpoint for collisions grouped by Hour.
+// Returns hour, accident_count
+app.post('/collisionsByHour', async (req, res) => {
+    const geom = req.body;
+    
+    if (!geom) {
+        console.log("No geom request")
+        return res.status(400).send('Missing required "geom" in request body');
+    }
+
+    try {
+        const query = `
+        WITH hour_counts as (
+            SELECT EXTRACT(HOUR FROM "Date and Time") AS hour, count(*) as accident_count
             FROM collisions
             WHERE ST_Intersects(
-                ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(geom)}'), 4326),
+                ST_SetSRID(ST_GeomFromGeoJSON($1), 4326),
                 ST_SetSRID(ST_MakePoint("Lat", "Long"), 4326)
-            );
-        `
-        console.log(queryString)
+            )
+            GROUP BY hour
+        ),
+        total_count as (
+            SELECT SUM(accident_count) as total_accidents
+            FROM hour_counts
+        )
+        SELECT hour, accident_count, ROUND(accident_count / (SELECT total_accidents FROM total_count), 4) as accident_prop
+        from hour_counts;
+        `;
+        const result = await client.query(query, [JSON.stringify(geom)]);
+        
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('X-Total-Count', result.rows.length);
+        
+        res.json(result.rows);
+
+    } catch (err) {
+        console.error('Error querying the database:', err);
+        
+        // More detailed error handling
+        if (err.code === '22P02' || err.code === '22023') {
+            return res.status(400).send('Invalid geometry format');
+        }
+        
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// POST endpoint for collisions groupbed by Day of week
+app.post('/collisionsByDayOfWeek', async (req, res) => {
+    const geom = req.body;
+    
+    if (!geom) {
+        console.log("No geom request")
+        return res.status(400).send('Missing required "geom" in request body');
+    }
+
+    try {
+        // Fixed query with proper parameterization and correct coordinate order
+        const query = `
+            WITH day_counts as (
+                SELECT EXTRACT(DOW FROM "Date and Time") AS day_of_week, count(*) as accident_count
+                FROM collisions
+                WHERE ST_Intersects(
+                    ST_SetSRID(ST_GeomFromGeoJSON($1), 4326),
+                    ST_SetSRID(ST_MakePoint("Lat", "Long"), 4326)
+                )
+                group by day_of_week
+            ),
+            total_count as (
+                SELECT SUM(accident_count) as total_accidents
+                FROM day_counts
+            )
+            SELECT day_of_week, accident_count, ROUND(accident_count / (SELECT total_accidents FROM total_count), 4) as accident_prop
+            from day_counts;
+        `;
         const result = await client.query(query, [JSON.stringify(geom)]);
         
         res.setHeader('Content-Type', 'application/json');
