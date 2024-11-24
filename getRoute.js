@@ -127,10 +127,12 @@ async function getAccidentsOnRoute(route) {
       }
 }
 
-async function routeSelection(routes, accidents) {
+async function getRouteRankings(routes) {
     console.log("Number of Routes: " + routes["routes"].length);
     const currentDate = new Date();
     const currentHour = currentDate.getHours();
+    var stats = await getAccidentStats();
+    var statAccPerAadt =  stats[0]["avg_acc"] / stats[0]["avg_aadt"];
 
     var minTravelTime;
     for (let i = 0; i < routes["routes"].length; i++) {
@@ -143,6 +145,7 @@ async function routeSelection(routes, accidents) {
         }
     }
 
+    var routeRankings = [];
     for (let i = 0; i < routes["routes"].length; i++) {
         var X = routes["routes"][i]["summary"]["travelTimeInSeconds"];
         var Y = routes["routes"][i]["summary"]["trafficDelayInSeconds"];
@@ -155,49 +158,85 @@ async function routeSelection(routes, accidents) {
         var trafficTerm = 1 + Math.log10(1-(beta * relTraffic));
         var trafficIndex = (travelTerm + trafficTerm) / 2;
 
-        console.log("Traffic Index: " + trafficIndex)
+        if (travelTerm == 1) {
+            var trafficText = "This route is currently the fastest at " + X + " seconds. ";
+        } else {
+            var trafficText = "This route will take " + X + " seconds, " + (X-minTravelTime) + " seconds longer than the fastest route. ";
+        }
+        if (Y > 0) {
+            trafficText += "The route is " + relTraffic.toFixed(2) + "% slower than usual, due to " + Y + " seconds of traffic along " + L + " meters. ";
+        }
 
-        var accidents = await getAccidentsOnRoute(routes["routes"][i])
+        var accidents = await getAccidentsOnRoute(routes["routes"][i]);
         var collisionsHr = accidents.filter(collision => {
             var collisionDate = new Date(collision["Date and Time"]);
             var collisionHour = collisionDate.getHours();
             return collisionHour === currentHour;
         });
-        var fatalCollisionsHr = collisionsHr.filter(collision => {
+        var fatalCollisions = accidents.filter(collision => {
             var sev = collision["KABCO Severity"];
             return sev === "(K) Fatal Injury";
         });
-        var K = 100 * fatalCollisionsHr.length / collisionsHr.length;
-        var expHrCol = accidents.length / 24;
-        var actHrCol = collisionsHr.length;
-        var M = (100 * (actHrCol - expHrCol) / expHrCol).toFixed(2);
-        var moreDanger = M > 0;
 
         var accidentsSeg = await getAccidentsOnRouteByRouteSegments(routes["routes"][i]);
-        console.log(accidentsSeg);
-
         var avgAcc = 0;
         var avgAadt = 0;
         for (let i = 0; i < accidentsSeg.length; i++) {
             var seg = accidentsSeg[i];
-            avgAcc += (Number(seg["hour_0"]) + Number(seg["hour_1"]) + Number(seg["hour_2"]) + Number(seg["hour_3"]) + Number(seg["hour_4"]) + Number(seg["hour_5"]) 
-              + Number(seg["hour_6"]) + Number(seg["hour_7"]) + Number(seg["hour_8"]) + Number(seg["hour_9"]) + Number(seg["hour_10"]) + Number(seg["hour_11"]) + Number(seg["hour_12"]) 
-              + Number(seg["hour_13"]) + Number(seg["hour_14"]) + Number(seg["hour_15"]) + Number(seg["hour_16"]) + Number(seg["hour_17"]) + Number(seg["hour_18"]) + Number(seg["hour_19"]) 
-              + Number(seg["hour_20"]) + Number(seg["hour_21"]) + Number(seg["hour_22"]) + Number(seg["hour_23"]));
-            avgAadt += Number(seg["aadt"])
+            avgAcc += Number(seg["total_accidents"]);
+            avgAadt += Number(seg["aadt"]);
         }
         avgAcc = avgAcc / accidentsSeg.length;
         avgAadt = avgAadt / accidentsSeg.length;
         var accPerAadt =  avgAcc / avgAadt;
-        console.log(accPerAadt);
-        var stats = await getAccidentStats();
-        var statAccPerAadt =  stats[0]["avg_acc"] / stats[0]["avg_aadt"]
-        console.log(statAccPerAadt)
+        var collTerm = Math.tanh((statAccPerAadt - accPerAadt) / statAccPerAadt);
+
+        var K = 100 * fatalCollisions.length / accidents.length;
+        var fatTerm = Math.tanh((0.7 - K) / 0.7);
+
+        var expHrCol = accidents.length / 24;
+        var actHrCol = collisionsHr.length;
+        var M = (expHrCol - actHrCol) / expHrCol;
+        var moreDanger = M < 0;
+
+        var safetyIndex = (collTerm + fatTerm + M) / 3;
+
+        var safetyText = "The likelihood of a collision occurring on this route is " + (accPerAadt/statAccPerAadt).toFixed(2) + " times the average. ";
+        if (collTerm * fatTerm < 0) {
+            safetyText += "However, ";
+        } else {
+            safetyText += "Additionally, ";
+        }
+        safetyText += "the likelihood of a collision on this route being fatal is " + (K/0.7).toFixed(2) + " times the average. ";
+        if (moreDanger) {
+            safetyText += "This time of day is more dangerous, being " + (-100 * M).toFixed(2) + "% more prone to crashes."
+        } else {
+            safetyText += "This time of day is less dangerous, being " + (100 * M).toFixed(2) + "% less prone to crashes."
+        }
+
+        console.log("Traffic Index: " + trafficIndex);
+        console.log("Safety Index: " + safetyIndex);
+
+        var routeIndex = 0.8*trafficIndex + 0.2*safetyIndex;
+        var routeText = trafficText + safetyText;
+        console.log("Route Index: " + routeIndex);
+        console.log("Route Text: " + routeText);
+        routeRankings.push({"index": routeIndex, "text_summary": routeText});        
     }
-    
-    console.log("K: "+K);
-    console.log("M: "+M);
-    console.log(moreDanger);
+    return routeRankings;
+}
+
+async function getBestRoute(routes, rankings) {
+    var maxIndex = -1;
+    var loc = -1;
+
+    for (let i = 0; i < rankings.length; i++) {
+        if (rankings[i]["index"] > maxIndex) {
+            loc = i;
+        }
+    }
+
+    return {"route": routes["routes"][loc], "index": rankings[loc]["index"], "text_summary": rankings[loc]["text_summary"]}
 }
 
 async function getAccidentStats() {
@@ -319,7 +358,9 @@ async function main() {
         let routePlanningLocations = `${pointA}:${pointB}`
         var flowData = await getTrafficFlowSegment();
         const routeData = await getRoute(routePlanningLocations);
-        await routeSelection(routeData);
+        const routeRankings = await getRouteRankings(routeData);
+        const bestRoute = await getBestRoute(routeData, routeRankings);
+        console.log("Best Route: ",bestRoute);
 
         var accidentsByHour = await getAccidentsOnRouteByHour(routeData["routes"][0]);
         var accidentsByDOW = await getAccidentsOnRouteByDayOfWeek(routeData["routes"][0]);
