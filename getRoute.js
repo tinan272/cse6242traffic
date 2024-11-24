@@ -343,7 +343,7 @@ async function getAccidentsOnRouteByRouteSegments(route) {
       }
 }
 
-export {getRoute, getAccidentsOnRoute, getTrafficFlowSegment, getAccidentsOnRouteByHour, getAccidentsOnRouteByRouteSegments, getAccidentsOnRouteByDayOfWeek, routeSelection };
+export {getRoute, getAccidentsOnRoute, getTrafficFlowSegment, getAccidentsOnRouteByHour, getAccidentsOnRouteByRouteSegments, getAccidentsOnRouteByDayOfWeek};
 
 
 
