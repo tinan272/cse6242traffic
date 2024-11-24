@@ -12,7 +12,9 @@ async function main(pointA, pointB) {
         const routeRankings = await getRouteRankings(routeData);
         const bestRoute = await getBestRoute(routeData, routeRankings);
         console.log("Best Route: ", bestRoute);
-
+        var div = document.getElementById('recText');
+        div.innerHTML = bestRoute.text_summary;
+        
         var accidentsByHour = await getAccidentsOnRouteByHour(routeData["routes"][0]);
         var accidentsByDOW = await getAccidentsOnRouteByDayOfWeek(routeData["routes"][0]);
         var accidentsBySegments = await getAccidentsOnRouteByRouteSegments(routeData["routes"][0]);
