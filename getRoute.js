@@ -100,9 +100,7 @@ async function getTrafficFlowSegment() {
 
 // Returns Accidents 
 async function getAccidentsOnRoute(route) {
-    const data = route.routes
-    const main = data[0]
-    const first_main_leg = main.legs[0].points
+    const first_main_leg = route.legs[0].points
     console.log(first_main_leg)
     const coordinates = first_main_leg.map(dict => Object.values(dict));
     var routeLine = turf.lineString(coordinates)
@@ -131,7 +129,8 @@ async function getAccidentsOnRoute(route) {
       }
 }
 
-async function routeSelection(routes, accidents, accidentsHourly) {
+async function routeSelection(routes, accidents) {
+    console.log(routes["routes"].length);
     console.log(routes["routes"][0]["summary"]);
     const currentDate = new Date();
     const currentHour = currentDate.getHours();
@@ -161,22 +160,22 @@ async function routeSelection(routes, accidents, accidentsHourly) {
 
         console.log(trafficIndex)
 
+        var accidents = await getAccidentsOnRoute(routes["routes"][i])
+        var timelyCollisions = accidents.filter(collision => {
+            var collisionDate = new Date(collision["Date and Time"]);
+            var collisionHour = collisionDate.getHours();
+            return collisionHour === currentHour;
+        });
+        var fatalCollisions = accidents.filter(collision => {
+            var sev = collision["KABCO Severity"];
+            return sev === "(K) Fatal Injury";
+        });
+        var K = 100* fatalCollisions.length / accidents.length;
+        var expHrCol = accidents.length / 24;
+        var actHrCol = timelyCollisions.length;
+        var M = (100 * (actHrCol - expHrCol) / expHrCol).toFixed(2);
+        var moreDanger = M > 0;
     }
-    
-    var timelyCollisions = accidents.filter(collision => {
-        var collisionDate = new Date(collision["Date and Time"]);
-        var collisionHour = collisionDate.getHours();
-        return collisionHour === currentHour;
-    });
-    var fatalCollisions = accidents.filter(collision => {
-        var sev = collision["KABCO Severity"];
-        return sev === "(K) Fatal Injury";
-    });
-    var K = 100* fatalCollisions.length / accidents.length;
-    var expHrCol = accidents.length / 24;
-    var actHrCol = timelyCollisions.length;
-    var M = (100 * (actHrCol - expHrCol) / expHrCol).toFixed(2);
-    var moreDanger = M > 0;
     
     console.log("K: "+K);
     console.log("M: "+M);
@@ -184,9 +183,7 @@ async function routeSelection(routes, accidents, accidentsHourly) {
 }
 
 async function getAccidentsOnRouteByHour(route) {
-    const data = route.routes
-    const main = data[0]
-    const first_main_leg = main.legs[0].points
+    const first_main_leg = route.legs[0].points
     console.log(first_main_leg)
     const coordinates = first_main_leg.map(dict => Object.values(dict));
     var routeLine = turf.lineString(coordinates)
@@ -216,9 +213,7 @@ async function getAccidentsOnRouteByHour(route) {
 }
 
 async function getAccidentsOnRouteByDayOfWeek(route) {
-    const data = route.routes
-    const main = data[0]
-    const first_main_leg = main.legs[0].points
+    const first_main_leg = route.legs[0].points
     console.log(first_main_leg)
     const coordinates = first_main_leg.map(dict => Object.values(dict));
     var routeLine = turf.lineString(coordinates)
@@ -252,10 +247,10 @@ async function main() {
     try {
         var flowData = await getTrafficFlowSegment();
         const routeData = await getRoute();
-        const accidentData = await getAccidentsOnRoute(routeData);
-        var accidentsByHour = await getAccidentsOnRouteByHour(routeData);
-        var accidentsByDOW = await getAccidentsOnRouteByDayOfWeek(routeData);
-        await routeSelection(routeData, accidentData, accidentsByHour);
+        await routeSelection(routeData);
+
+        var accidentsByHour = await getAccidentsOnRouteByHour(routeData["routes"][0]);
+        var accidentsByDOW = await getAccidentsOnRouteByDayOfWeek(routeData["routes"][0]);
     } catch (error) {
         console.error("Error in main execution:", error);
     }
