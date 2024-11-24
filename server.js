@@ -255,6 +255,7 @@ app.listen(PORT, () => {
     console.log('  POST /collisionsByHour');
     console.log('  POST /collisionsByDayOfWeek');
     console.log('  POST /collisionsByRouteSegment');
+    console.log('  POST /collisionsAggAAD');
     console.log('  GET /test');
 });
 

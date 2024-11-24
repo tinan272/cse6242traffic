@@ -219,7 +219,7 @@ async function getRouteRankings(routes) {
         var M = (expHrCol - actHrCol) / expHrCol;
         var moreDanger = M < 0;
 
-        var safetyIndex = (collTerm + fatTerm + M) / 3;
+        var safetyIndex = (collTerm + fatTerm + Math.tanh(M)) / 3;
 
         var safetyText =
             "The likelihood of a collision occurring on this route is " +
@@ -246,14 +246,16 @@ async function getRouteRankings(routes) {
                 "% less prone to crashes.";
         }
 
-        console.log("Traffic Index: " + trafficIndex);
-        console.log("Safety Index: " + safetyIndex);
+        console.log("For Route "+(i+1)+":")
+        console.log("     Traffic Index: " + trafficIndex);
+        console.log("     Safety Index: " + safetyIndex);
 
         var routeIndex = 0.8 * trafficIndex + 0.2 * safetyIndex;
         var routeText = trafficText + safetyText;
-        console.log("Route Index: " + routeIndex);
-        console.log("Route Text: " + routeText);
-        routeRankings.push({ index: routeIndex, text_summary: routeText });
+      
+        console.log("     Route Index: " + routeIndex);
+        console.log("     Route Text: " + routeText);
+        routeRankings.push({"index": routeIndex, "text_summary": routeText});        
     }
     return routeRankings;
 }
