@@ -1,3 +1,4 @@
+const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain([0, 7000]);
 const platform = new H.service.Platform({
     apikey: "wQndyHdPqoKFF6eE1ei474ph9GxP7ChUlA06sbeeQjQ",
 });
@@ -49,7 +50,6 @@ const customStyle = {
 
 let currentRouteGroup = null;
 let currPopUp = null;
-const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain([0, 400]);
 
 function calculateRoute(origin, destination, waypoints = []) {
     if (currentRouteGroup) {
@@ -330,3 +330,85 @@ const features = {
 };
 
 addRoute(features);
+showLegend();
+
+function showLegend() {
+    const legendContainer = document.createElement("div");
+    legendContainer.style.cssText = `
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        z-index: 1000;
+        height: 100px;
+    `;
+    const title = document.createElement("div");
+    title.textContent = "Accident Count";
+    title.style.marginBottom = "5px";
+    title.style.fontWeight = "bold";
+    legendContainer.appendChild(title);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "200");
+    svg.setAttribute("height", "50");
+
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    const linearGradient = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "linearGradient"
+    );
+    linearGradient.setAttribute("id", "accident-gradient");
+    linearGradient.setAttribute("x1", "0%");
+    linearGradient.setAttribute("x2", "100%");
+    linearGradient.setAttribute("y1", "0%");
+    linearGradient.setAttribute("y2", "0%");
+
+    const stops = 10;
+    for (let i = 0; i <= stops; i++) {
+        const stop = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "stop"
+        );
+        const value = i * (7000 / stops);
+        stop.setAttribute("offset", `${(i / stops) * 100}%`);
+        stop.setAttribute("stop-color", colorScale(value));
+        linearGradient.appendChild(stop);
+    }
+
+    defs.appendChild(linearGradient);
+    svg.appendChild(defs);
+
+    const gradientRect = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "rect"
+    );
+    gradientRect.setAttribute("x", "10");
+    gradientRect.setAttribute("y", "10");
+    gradientRect.setAttribute("width", "180");
+    gradientRect.setAttribute("height", "20");
+    gradientRect.setAttribute("fill", "url(#accident-gradient)");
+    svg.appendChild(gradientRect);
+
+    const labels = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+    const minLabel = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text"
+    );
+    minLabel.setAttribute("x", "10");
+    minLabel.setAttribute("y", "45");
+    minLabel.setAttribute("font-size", "12");
+    minLabel.textContent = "0";
+    const maxLabel = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text"
+    );
+    maxLabel.setAttribute("x", "170");
+    maxLabel.setAttribute("y", "45");
+    maxLabel.setAttribute("font-size", "12");
+    maxLabel.textContent = "7000";
+    labels.appendChild(minLabel);
+    labels.appendChild(maxLabel);
+    svg.appendChild(labels);
+    legendContainer.appendChild(svg);
+    document.getElementById("map").appendChild(legendContainer);
+}

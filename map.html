@@ -26,9 +26,15 @@
                 align-items: center;
             }
             #map {
-                width: 1000px;
-                height: 750px;
+                display: flex;
+                width: 1200px;
+                height: 1000px;
+                justify-content: space-around;
             }
+            #map div {
+                margin-left: 10px;
+            }
+
             .route {
                 transition: stroke-width 0.2s;
             }
@@ -49,6 +55,7 @@
             <div id="map">
                 <script src="getMap.js"></script>
             </div>
+            <div class="legend" id="legend"></div>
         </div>
         <svg width="800" height="600" id="routeMap"></svg>
         <!-- <script src="getRoute.js"></script> -->
