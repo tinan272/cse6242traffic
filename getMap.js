@@ -2,56 +2,60 @@ const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain([0, 7000]);
 const platform = new H.service.Platform({
     apikey: "wQndyHdPqoKFF6eE1ei474ph9GxP7ChUlA06sbeeQjQ",
 });
-const defaultLayers = platform.createDefaultLayers({
-    vector: {
-        normal: {
-            map: {
-                style: "lite",
-                base: "base",
+let map = null;
+let ui = null;
+let behavior = null;
+function createMap() {
+    const defaultLayers = platform.createDefaultLayers({
+        vector: {
+            normal: {
+                map: {
+                    style: "lite",
+                    base: "base",
+                },
             },
         },
-    },
-});
-const map = new H.Map(
-    document.getElementById("map"),
-    defaultLayers.vector.normal.map,
-    {
-        zoom: 12,
-        center: { lat: 33.7501, lng: -84.3885 },
-        padding: { top: 50, right: 50, bottom: 50, left: 50 },
-    }
-);
+    });
+    const HMap = new H.Map(
+        document.getElementById("map"),
+        defaultLayers.vector.normal.map,
+        {
+            zoom: 12,
+            center: { lat: 33.7501, lng: -84.3885 },
+            padding: { top: 50, right: 50, bottom: 50, left: 50 },
+        }
+    );
+    map = HMap;
 
-// Create the default UI components and store ui variable globally
-const ui = H.ui.UI.createDefault(map, defaultLayers);
-// MapEvents enables the event system.
-const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
-window.addEventListener("resize", () => map.getViewPort().resize());
+    // Create the default UI components and store ui variable globally
+    const newUI = H.ui.UI.createDefault(map, defaultLayers);
+    ui = newUI;
+    // MapEvents enables the event system.
+    const newBehavior = new H.mapevents.Behavior(
+        new H.mapevents.MapEvents(map)
+    );
+    behavior = newBehavior;
+    window.addEventListener("resize", () => map.getViewPort().resize());
+}
+
+function verifyMap() {
+    if (!map) {
+        console.error("Map not initialized");
+        return false;
+    }
+    return true;
+}
 
 const routeHighlightStyling = {
     lineWidth: 5,
     strokeColor: "#FFFF00",
-};
-const customStyle = {
-    layers: {
-        roads: {
-            highway: {
-                fill: {
-                    color: "#FF0000", // Red color for highways
-                },
-                outline: {
-                    color: "#FFFFFF", // White outline for contrast
-                    width: 2,
-                },
-            },
-        },
-    },
 };
 
 let currentRouteGroup = null;
 let currPopUp = null;
 
 function calculateRoute(origin, destination, waypoints = []) {
+    if (!verifyMap()) return;
     if (currentRouteGroup) {
         map.removeObject(currentRouteGroup);
     }
@@ -71,35 +75,35 @@ function calculateRoute(origin, destination, waypoints = []) {
             waypoints.map((wp) => `${wp.latitude},${wp.longitude}`)
         );
 
-        // waypoints.forEach((waypoint, index) => {
-        //     var waypointSVG = `<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
-        //     <rect stroke="white" fill="#FF6347" x="1" y="1" width="22" height="22" />
-        //     <text x="12" y="18" font-size="12pt" font-family="Arial" font-weight="bold" text-anchor="middle" fill="white">
-        //         ${index + 1}
-        //     </text>
-        // </svg>`;
-        // const waypointIcon = new H.map.Icon(waypointSVG, {
-        //     size: { w: 24, h: 24 },
-        //     anchor: { x: 12, y: 12 }, // Anchor the icon to the center
-        // });
-        // const waypointMarker = new H.map.Marker(
-        //     {
-        //         lat: waypoint.latitude,
-        //         lng: waypoint.longitude,
-        //     },
-        //     { icon: waypointIcon }
-        // );
-        // waypointMarker.setData(`Waypoint ${index + 1}`);
-        // waypointMarkers.push(waypointMarker);
-        // });
-        var originSVG =
+        waypoints.forEach((waypoint, index) => {
+            var waypointSVG = `<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+            <rect stroke="white" fill="#FF6347" x="1" y="1" width="22" height="22" />
+            <text x="12" y="18" font-size="12pt" font-family="Arial" font-weight="bold" text-anchor="middle" fill="white">
+                ${index + 1}
+            </text>
+        </svg>`;
+            const waypointIcon = new H.map.Icon(waypointSVG, {
+                size: { w: 24, h: 24 },
+                anchor: { x: 12, y: 12 }, // Anchor the icon to the center
+            });
+            const waypointMarker = new H.map.Marker(
+                {
+                    lat: waypoint.latitude,
+                    lng: waypoint.longitude,
+                },
+                { icon: waypointIcon }
+            );
+            waypointMarker.setData(`Waypoint ${index + 1}`);
+            waypointMarkers.push(waypointMarker);
+        });
+        const originSVG =
             '<svg width="24" height="24" ' +
             'xmlns="http://www.w3.org/2000/svg">' +
             '<rect stroke="white" fill="#1b468d" x="1" y="1" width="22" ' +
             'height="22" /><text x="12" y="18" font-size="12pt" ' +
             'font-family="Arial" font-weight="bold" text-anchor="middle" ' +
             'fill="white">O</text></svg>';
-        var destinationSVG =
+        const destinationSVG =
             '<svg width="24" height="24" ' +
             'xmlns="http://www.w3.org/2000/svg">' +
             '<rect stroke="white" fill="#1b468d" x="1" y="1" width="22" ' +
@@ -130,6 +134,7 @@ function calculateRoute(origin, destination, waypoints = []) {
     }
 
     const onResult = function (result) {
+        console.log(result.routes);
         if (result.routes.length) {
             const group = new H.map.Group();
 
@@ -148,7 +153,6 @@ function calculateRoute(origin, destination, waypoints = []) {
                     waypoints: waypoints,
                     accident_count: allPoints[index]?.accident_count || 0,
                 };
-
                 // Define the route line
                 const routeLine = new H.map.Polyline(lineString, {
                     style: {
@@ -192,7 +196,6 @@ function calculateRoute(origin, destination, waypoints = []) {
             });
         }
     };
-
     const router = platform.getRoutingService(null, 8);
     router.calculateRoute(routingParameters, onResult, function (error) {
         alert(error.message);
@@ -270,28 +273,33 @@ function onClick(event) {
 }
 
 function formatCoordinates(point) {
-    console.log(point);
     return `(${point.latitude.toFixed(4)}, ${point.longitude.toFixed(4)})`;
 }
 
-function addRoute(feats) {
-    const features = feats["features"];
+function addRoute(geojson) {
+    const features = [];
+    for (const segment of geojson) {
+        const geoJsonString = segment["geojson"];
+        const segment_dict = JSON.parse(geoJsonString);
+        const coordinates = segment_dict["coordinates"][0][0];
+        const total_accidents = segment["total_accidents"];
+        const feat = {
+            type: "Feature",
+            properties: {
+                latitude: coordinates[1],
+                longitude: coordinates[0],
+                accident_count: total_accidents,
+            },
+        };
+        features.push(feat);
+    }
     const origin = features[0]["properties"];
     const destination = features[features.length - 1]["properties"];
     const waypoints = features
         .slice(1, -1)
         .map((feature) => feature["properties"]);
-    console.log(waypoints);
     calculateRoute(origin, destination, waypoints);
 }
-
-// example coordinates
-// const origin = { lat: 33.7756, lng: -84.3963 };
-// const destination = { lat: 33.9232, lng: -84.3408 };
-// const waypoints = [
-//     { lat: 33.7916, lng: -84.3983 },
-//     { lat: 33.8218, lng: -84.3785 },
-// ];
 const features = {
     features: [
         {
@@ -302,35 +310,8 @@ const features = {
                 accident_count: 279,
             },
         },
-        {
-            type: "Feature",
-            properties: {
-                latitude: 33.85436,
-                longitude: -83.93324,
-                accident_count: 23,
-            },
-        },
-        {
-            type: "Feature",
-            properties: {
-                latitude: 32.97327,
-                longitude: -82.80873,
-                accident_count: 115,
-            },
-        },
-        {
-            type: "Feature",
-            properties: {
-                latitude: 33.6555,
-                longitude: -84.40319,
-                accident_count: 125,
-            },
-        },
     ],
 };
-
-addRoute(features);
-showLegend();
 
 function showLegend() {
     const legendContainer = document.createElement("div");
@@ -412,3 +393,5 @@ function showLegend() {
     legendContainer.appendChild(svg);
     document.getElementById("map").appendChild(legendContainer);
 }
+
+export { createMap, addRoute, showLegend };
