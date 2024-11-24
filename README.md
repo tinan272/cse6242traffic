@@ -6,6 +6,8 @@ npm install -g http-server
 
 npm install
 
+npm install esbuild
+
 run front-end with: http-server
 
 run express server on separate terminal: node server.js
@@ -17,7 +19,7 @@ Using the library @turf/turf, we use the library browserify to use npm functions
 
 Run in incognito (doesn't cache)
 
-After editing the main function (currently getRoute.js): run browserify getRoute.js -o bundle.js
+After editing the main function (currently getRoute.js): run `npx esbuild main.js --bundle --outfile=bundle.js --platform=browser`
 
 After, refresh http://localhost:8080/bundle.js
 
