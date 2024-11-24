@@ -1,8 +1,16 @@
-console.log(d3.version);
 const platform = new H.service.Platform({
     apikey: "wQndyHdPqoKFF6eE1ei474ph9GxP7ChUlA06sbeeQjQ",
 });
-const defaultLayers = platform.createDefaultLayers();
+const defaultLayers = platform.createDefaultLayers({
+    vector: {
+        normal: {
+            map: {
+                style: "lite",
+                base: "base",
+            },
+        },
+    },
+});
 const map = new H.Map(
     document.getElementById("map"),
     defaultLayers.vector.normal.map,
@@ -23,9 +31,25 @@ const routeHighlightStyling = {
     lineWidth: 5,
     strokeColor: "#FFFF00",
 };
+const customStyle = {
+    layers: {
+        roads: {
+            highway: {
+                fill: {
+                    color: "#FF0000", // Red color for highways
+                },
+                outline: {
+                    color: "#FFFFFF", // White outline for contrast
+                    width: 2,
+                },
+            },
+        },
+    },
+};
 
 let currentRouteGroup = null;
 let currPopUp = null;
+const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain([0, 400]);
 
 function calculateRoute(origin, destination, waypoints = []) {
     if (currentRouteGroup) {
@@ -33,9 +57,6 @@ function calculateRoute(origin, destination, waypoints = []) {
     }
     // Define allPoints array here
     const allPoints = [origin, ...waypoints, destination];
-    const colorScale = d3
-        .scaleSequential(d3.interpolateReds)
-        .domain([0, Math.max(...allPoints.map((p) => p.accident_count || 0))]);
     const waypointMarkers = [];
     const routingParameters = {
         routingMode: "fast",
@@ -50,14 +71,62 @@ function calculateRoute(origin, destination, waypoints = []) {
             waypoints.map((wp) => `${wp.latitude},${wp.longitude}`)
         );
 
-        waypoints.forEach((waypoint, index) => {
-            const waypointMarker = new H.map.Marker({
-                lat: waypoint.latitude,
-                lng: waypoint.longitude,
-            });
-            waypointMarker.setData(`Waypoint ${index + 1}`);
-            waypointMarkers.push(waypointMarker);
+        // waypoints.forEach((waypoint, index) => {
+        //     var waypointSVG = `<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+        //     <rect stroke="white" fill="#FF6347" x="1" y="1" width="22" height="22" />
+        //     <text x="12" y="18" font-size="12pt" font-family="Arial" font-weight="bold" text-anchor="middle" fill="white">
+        //         ${index + 1}
+        //     </text>
+        // </svg>`;
+        // const waypointIcon = new H.map.Icon(waypointSVG, {
+        //     size: { w: 24, h: 24 },
+        //     anchor: { x: 12, y: 12 }, // Anchor the icon to the center
+        // });
+        // const waypointMarker = new H.map.Marker(
+        //     {
+        //         lat: waypoint.latitude,
+        //         lng: waypoint.longitude,
+        //     },
+        //     { icon: waypointIcon }
+        // );
+        // waypointMarker.setData(`Waypoint ${index + 1}`);
+        // waypointMarkers.push(waypointMarker);
+        // });
+        var originSVG =
+            '<svg width="24" height="24" ' +
+            'xmlns="http://www.w3.org/2000/svg">' +
+            '<rect stroke="white" fill="#1b468d" x="1" y="1" width="22" ' +
+            'height="22" /><text x="12" y="18" font-size="12pt" ' +
+            'font-family="Arial" font-weight="bold" text-anchor="middle" ' +
+            'fill="white">O</text></svg>';
+        var destinationSVG =
+            '<svg width="24" height="24" ' +
+            'xmlns="http://www.w3.org/2000/svg">' +
+            '<rect stroke="white" fill="#1b468d" x="1" y="1" width="22" ' +
+            'height="22" /><text x="12" y="18" font-size="12pt" ' +
+            'font-family="Arial" font-weight="bold" text-anchor="middle" ' +
+            'fill="white">D</text></svg>';
+        const originIcon = new H.map.Icon(originSVG, {
+            size: { w: 24, h: 24 },
+            anchor: { x: 12, y: 12 },
         });
+        const originMarker = new H.map.Marker(
+            { lat: origin.latitude, lng: origin.longitude },
+            { icon: originIcon }
+        );
+        originMarker.setData({ type: "Origin" });
+        waypointMarkers.push(originMarker);
+
+        const destinationIcon = new H.map.Icon(destinationSVG, {
+            size: { w: 24, h: 24 },
+            anchor: { x: 12, y: 12 },
+        });
+        const destinationMarker = new H.map.Marker(
+            { lat: destination.latitude, lng: destination.longitude },
+            { icon: destinationIcon }
+        );
+        destinationMarker.setData({ type: "Destination" });
+        waypointMarkers.push(destinationMarker);
     }
 
     const onResult = function (result) {
@@ -79,19 +148,28 @@ function calculateRoute(origin, destination, waypoints = []) {
                     waypoints: waypoints,
                     accident_count: allPoints[index]?.accident_count || 0,
                 };
+
+                // Define the route line
                 const routeLine = new H.map.Polyline(lineString, {
                     style: {
                         strokeColor: colorScale(routeData.accident_count),
-                        lineWidth: 3,
+                        lineWidth: 6,
+                        lineJoin: "round",
+                    },
+                });
+
+                const routeOutlineLine = new H.map.Polyline(lineString, {
+                    style: {
+                        strokeColor: "#000000",
+                        lineWidth: 8,
+                        lineJoin: "round",
                     },
                 });
                 routeLine.setData(routeData);
-
                 routeLine.addEventListener("pointerenter", onEnter);
                 routeLine.addEventListener("pointerleave", onLeave);
                 routeLine.addEventListener("tap", onClick);
-
-                group.addObject(routeLine);
+                group.addObjects([routeOutlineLine, routeLine]);
             });
 
             const startMarker = new H.map.Marker({
