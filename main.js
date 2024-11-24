@@ -46,7 +46,7 @@ const form = document.getElementById("input");
 createMap();
 showLegend();
 
-form.addEventListener("submit", function (event) {
+form.addEventListener("submit", async function (event) {
     // Prevent the default form submission behavior
     event.preventDefault();
 
@@ -59,10 +59,10 @@ form.addEventListener("submit", function (event) {
         data[key] = value;
     });
     console.log(data);
-    let streetNumA = encodeURIComponent(data[streetNumA]);
-    let streetNameA = encodeURIComponent(data[streetNameA]);
-    let streetNumB = encodeURIComponent(data[streetNumB]);
-    let streetNameB = encodeURIComponent(data[streetNameB]);
+    let streetNumA = encodeURIComponent(data["streetNumA"]);
+    let streetNameA = encodeURIComponent(data["streetNameA"]);
+    let streetNumB = encodeURIComponent(data["streetNumB"]);
+    let streetNameB = encodeURIComponent(data["streetNameB"]);
 
     console.log("getting coordinates....");
     if (streetNumA === undefined) {
@@ -73,14 +73,8 @@ form.addEventListener("submit", function (event) {
         streetNumB = encodeURIComponent("1000");
         streetNameB = encodeURIComponent("Robert E. Lee Blvd");
     }
-    console.log(streetNumA);
-    console.log(streetNameA);
-    console.log(streetNumB);
-    console.log(streetNameB);
-    const coordinatesA = convertAddressToCoordinates(streetNumA, streetNameA);
-    const coordinatesB = convertAddressToCoordinates(streetNumB, streetNameB);
-    console.log(coordinatesA);
-    console.log(coordinatesB);
+    const coordinatesA = await convertAddressToCoordinates(streetNumA, streetNameA);
+    const coordinatesB = await convertAddressToCoordinates(streetNumB, streetNameB);
     var pointA = coordinatesA["lat"] + "," + coordinatesA["lon"];
     var pointB = coordinatesB["lat"] + "," + coordinatesB["lon"];
     if (pointA === undefined) {
@@ -89,8 +83,10 @@ form.addEventListener("submit", function (event) {
     if (pointB === undefined) {
         pointB = "34.0533754844467,-84.45465522830254";
     }
+    console.log(pointA)
+    console.log(pointB)
     // Process the data using a function
-    // main(pointA, pointB);
+    main(pointA, pointB);
 });
 
 // // Execute the main function
