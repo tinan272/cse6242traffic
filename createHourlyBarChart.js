@@ -48,7 +48,7 @@ async function createBarChart(accidentsByHour) {
     
     svg.append("text")
         .attr("x", (width / 2))             
-        .attr("y", (margin.top / 2))
+        .attr("y", (margin.top / 2) + 5)
         .attr("text-anchor", "middle")  
         .style("font-size", "16px") 
         .style("text-decoration", "underline")  

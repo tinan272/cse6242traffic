@@ -36,8 +36,8 @@
             }
             #map {
                 display: flex;
-                width: 1200px;
-                height: 1000px;
+                width: 1000px;
+                height: 700px;
                 justify-content: space-around;
             }
             #map div {
@@ -64,6 +64,7 @@
                 font-family: "Roboto", sans-serif;
                 font-weight: 700;
                 font-style: normal;
+                font-size: x-large;
             }
             .center {
                 display: flex;
@@ -72,6 +73,20 @@
             }
             .flexgap {
                 gap: 10px;
+            }
+            .textContainer {
+                width: 50%;
+                display: flex;
+                flex-direction: column;
+            }
+            #recText {
+                width: 50%;
+            }
+            .accidentInfo {
+                margin-top: 10px;
+                width: 100%;
+                display: flex;
+                flex-direction: row;
             }
         </style>
     </head>
@@ -97,12 +112,16 @@
         <div class="map-container">
             <div id="map"></div>
             <div class="legend" id="legend"></div>
+            <div class="accidentInfo">
+                <div class="textContainer center">
+                    <h3 class="recTextTitle roboto-bold">
+                        Route Recommendation
+                    </h3>
+                    <div class="roboto-regular" id="recText"></div>
+                </div>
+                <div id="chart" class="center"></div>
+            </div>
         </div>
-        <div class="textContainer center">
-            <h3 class="recTextTitle roboto-bold">Route Recommendation</h3>
-            <div class="roboto-regular" id="recText"></div>
-        </div>
-        <div id="chart" class="center"></div>
         <!-- <script src="getRoute.js"></script> -->
         <script type="module" src="bundle.js"></script>
     </body>
