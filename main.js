@@ -1,5 +1,5 @@
 import { getRoute, getAccidentsOnRoute, getTrafficFlowSegment, getAccidentsOnRouteByHour,
-    getAccidentsOnRouteByRouteSegments, getAccidentsOnRouteByDayOfWeek, routeSelection } from "./getRoute.js";
+    getAccidentsOnRouteByRouteSegments, getAccidentsOnRouteByDayOfWeek, getRouteRankings, getBestRoute } from "./getRoute.js";
 import { createBarChart } from "./createHourlyBarChart.js";
 
 async function main() {

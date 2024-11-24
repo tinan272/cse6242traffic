@@ -212,13 +212,14 @@ async function getRouteRankings(routes) {
             safetyText += "This time of day is less dangerous, being " + (100 * M).toFixed(2) + "% less prone to crashes."
         }
 
-        console.log("Traffic Index: " + trafficIndex);
-        console.log("Safety Index: " + safetyIndex);
+        console.log("For Route "+(i+1)+":")
+        console.log("     Traffic Index: " + trafficIndex);
+        console.log("     Safety Index: " + safetyIndex);
 
         var routeIndex = 0.8*trafficIndex + 0.2*safetyIndex;
         var routeText = trafficText + safetyText;
-        console.log("Route Index: " + routeIndex);
-        console.log("Route Text: " + routeText);
+        console.log("     Route Index: " + routeIndex);
+        console.log("     Route Text: " + routeText);
         routeRankings.push({"index": routeIndex, "text_summary": routeText});        
     }
     return routeRankings;
@@ -343,7 +344,7 @@ async function getAccidentsOnRouteByRouteSegments(route) {
       }
 }
 
-export {getRoute, getAccidentsOnRoute, getTrafficFlowSegment, getAccidentsOnRouteByHour, getAccidentsOnRouteByRouteSegments, getAccidentsOnRouteByDayOfWeek};
+export {getRoute, getAccidentsOnRoute, getTrafficFlowSegment, getAccidentsOnRouteByHour, getAccidentsOnRouteByRouteSegments, getAccidentsOnRouteByDayOfWeek, getRouteRankings, getBestRoute};
 
 
 
