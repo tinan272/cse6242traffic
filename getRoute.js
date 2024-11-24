@@ -26,7 +26,6 @@ async function fetchAPI(url) {
 
 async function getRoute(routePlanningLocations) {
     const versionNumber = "1";
-    const routePlanningLocations = routePlanningLocations // need >=2 locations. Values: colon-delimited generalizedLocations.
     const contentType = "json";
     const alternativeRoutes = 3;
     const alternativeType = "betterRoute";
@@ -242,9 +241,7 @@ async function getAccidentsOnRouteByDayOfWeek(route) {
 }
 
 async function getAccidentsOnRouteByRouteSegments(route) {
-    const data = route.routes
-    const main = data[0]
-    const first_main_leg = main.legs[0].points
+    const first_main_leg = route.legs[0].points
     console.log(first_main_leg)
     const coordinates = first_main_leg.map(dict => Object.values(dict));
     var routeLine = turf.lineString(coordinates)
