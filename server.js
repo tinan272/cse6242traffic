@@ -7,7 +7,7 @@ const client = new Client({
     user: 'postgres',
     host: 'localhost',
     database: 'accidents',
-    password: 'iamcharlie',
+    password: 'ace109182',
     port: 5432,
 });
 
@@ -175,7 +175,7 @@ app.post('/collisionsByRouteSegment', async (req, res) => {
     try {
         // Fixed query with proper parameterization and correct coordinate order
         const query = `
-            SELECT 	hour_0, hour_1, hour_2, hour_3, hour_4, hour_5
+            SELECT 	hour_0, hour_1, hour_2, hour_3, hour_4, hour_5,
                     hour_6, hour_7, hour_8, hour_9, hour_10, hour_11,
                     hour_12, hour_13, hour_14, hour_15, hour_16, hour_17,
                     hour_18, hour_19, hour_20, hour_21, hour_22, hour_23,
@@ -203,6 +203,36 @@ app.post('/collisionsByRouteSegment', async (req, res) => {
         
         res.status(500).send('Internal Server Error');
     }
+});
+
+// POST endpoint for getting aggregate accident statistics
+app.post('/collisionsAggAADT', async (req, res) => {  
+  try {
+      // Fixed query with proper parameterization and correct coordinate order
+      const query = `
+          select avg(hour_0 + hour_1 + hour_2 + hour_3 + hour_4 + hour_5 
+          + hour_6 + hour_7 + hour_8 + hour_9 + hour_10 + hour_11 + hour_12 
+          + hour_13 + hour_14 + hour_15 + hour_16 + hour_17 + hour_18 
+          + hour_19 + hour_20 + hour_21 + hour_22 + hour_23) as avg_acc,
+          avg(aadt::int) as avg_aadt from accidents_by_segment_hourly
+      `;
+      const result = await client.query(query);
+      
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('X-Total-Count', result.rows.length);
+      
+      res.json(result.rows);
+
+  } catch (err) {
+      console.error('Error querying the database:', err);
+      
+      // More detailed error handling
+      if (err.code === '22P02' || err.code === '22023') {
+          return res.status(400).send('Invalid geometry format');
+      }
+      
+      res.status(500).send('Internal Server Error');
+  }
 });
 
 // Add a simple test endpoint

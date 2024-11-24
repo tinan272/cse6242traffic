@@ -2,7 +2,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 username = "postgres" #default username, change if you changed
-password = "iamcharlie" #input password
+password = "ace109182" #input password
 host = "localhost" #default
 port = "5432" #default
 # Create a connection to PostgreSQL

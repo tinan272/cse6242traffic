@@ -128,8 +128,7 @@ async function getAccidentsOnRoute(route) {
 }
 
 async function routeSelection(routes, accidents) {
-    console.log(routes["routes"].length);
-    console.log(routes["routes"][0]["summary"]);
+    console.log("Number of Routes: " + routes["routes"].length);
     const currentDate = new Date();
     const currentHour = currentDate.getHours();
 
@@ -156,28 +155,71 @@ async function routeSelection(routes, accidents) {
         var trafficTerm = 1 + Math.log10(1-(beta * relTraffic));
         var trafficIndex = (travelTerm + trafficTerm) / 2;
 
-        console.log(trafficIndex)
+        console.log("Traffic Index: " + trafficIndex)
 
         var accidents = await getAccidentsOnRoute(routes["routes"][i])
-        var timelyCollisions = accidents.filter(collision => {
+        var collisionsHr = accidents.filter(collision => {
             var collisionDate = new Date(collision["Date and Time"]);
             var collisionHour = collisionDate.getHours();
             return collisionHour === currentHour;
         });
-        var fatalCollisions = accidents.filter(collision => {
+        var fatalCollisionsHr = collisionsHr.filter(collision => {
             var sev = collision["KABCO Severity"];
             return sev === "(K) Fatal Injury";
         });
-        var K = 100* fatalCollisions.length / accidents.length;
+        var K = 100 * fatalCollisionsHr.length / collisionsHr.length;
         var expHrCol = accidents.length / 24;
-        var actHrCol = timelyCollisions.length;
+        var actHrCol = collisionsHr.length;
         var M = (100 * (actHrCol - expHrCol) / expHrCol).toFixed(2);
         var moreDanger = M > 0;
+
+        var accidentsSeg = await getAccidentsOnRouteByRouteSegments(routes["routes"][i]);
+        console.log(accidentsSeg);
+
+        var avgAcc = 0;
+        var avgAadt = 0;
+        for (let i = 0; i < accidentsSeg.length; i++) {
+            var seg = accidentsSeg[i];
+            avgAcc += (Number(seg["hour_0"]) + Number(seg["hour_1"]) + Number(seg["hour_2"]) + Number(seg["hour_3"]) + Number(seg["hour_4"]) + Number(seg["hour_5"]) 
+              + Number(seg["hour_6"]) + Number(seg["hour_7"]) + Number(seg["hour_8"]) + Number(seg["hour_9"]) + Number(seg["hour_10"]) + Number(seg["hour_11"]) + Number(seg["hour_12"]) 
+              + Number(seg["hour_13"]) + Number(seg["hour_14"]) + Number(seg["hour_15"]) + Number(seg["hour_16"]) + Number(seg["hour_17"]) + Number(seg["hour_18"]) + Number(seg["hour_19"]) 
+              + Number(seg["hour_20"]) + Number(seg["hour_21"]) + Number(seg["hour_22"]) + Number(seg["hour_23"]));
+            avgAadt += Number(seg["aadt"])
+        }
+        avgAcc = avgAcc / accidentsSeg.length;
+        avgAadt = avgAadt / accidentsSeg.length;
+        var accPerAadt =  avgAcc / avgAadt;
+        console.log(accPerAadt);
+        var stats = await getAccidentStats();
+        var statAccPerAadt =  stats[0]["avg_acc"] / stats[0]["avg_aadt"]
+        console.log(statAccPerAadt)
     }
     
     console.log("K: "+K);
     console.log("M: "+M);
     console.log(moreDanger);
+}
+
+async function getAccidentStats() {
+  try {
+      const response = await fetch(`http://localhost:3000/collisionsAggAADT`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Stats/:', data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+  }
 }
 
 async function getAccidentsOnRouteByHour(route) {
