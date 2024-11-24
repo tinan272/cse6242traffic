@@ -24,10 +24,9 @@ async function fetchAPI(url) {
     }
 }
 
-async function getRoute() {
+async function getRoute(routePlanningLocations) {
     const versionNumber = "1";
-    const routePlanningLocations =
-        "34.00635229451376,-84.42516328702436:34.0533754844467,-84.45465522830254"; // need >=2 locations. Values: colon-delimited generalizedLocations.
+    const routePlanningLocations = routePlanningLocations // need >=2 locations. Values: colon-delimited generalizedLocations.
     const contentType = "json";
     const alternativeRoutes = 3;
     const alternativeType = "betterRoute";
@@ -276,8 +275,11 @@ async function getAccidentsOnRouteByRouteSegments(route) {
 
 async function main() {
     try {
+        var pointA = "34.00635229451376,-84.42516328702436"
+        var pointB = "34.0533754844467,-84.45465522830254"
+        let routePlanningLocations = `${pointA}:${pointB}`
         var flowData = await getTrafficFlowSegment();
-        const routeData = await getRoute();
+        const routeData = await getRoute(routePlanningLocations);
         await routeSelection(routeData);
 
         var accidentsByHour = await getAccidentsOnRouteByHour(routeData["routes"][0]);
