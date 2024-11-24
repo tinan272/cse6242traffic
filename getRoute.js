@@ -197,7 +197,7 @@ async function getRouteRankings(routes) {
         var M = (expHrCol - actHrCol) / expHrCol;
         var moreDanger = M < 0;
 
-        var safetyIndex = (collTerm + fatTerm + M) / 3;
+        var safetyIndex = (collTerm + fatTerm + Math.tanh(M)) / 3;
 
         var safetyText = "The likelihood of a collision occurring on this route is " + (accPerAadt/statAccPerAadt).toFixed(2) + " times the average. ";
         if (collTerm * fatTerm < 0) {
