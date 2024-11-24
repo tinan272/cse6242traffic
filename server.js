@@ -163,6 +163,48 @@ app.post('/collisionsByDayOfWeek', async (req, res) => {
     }
 });
 
+// POST endpoint for collisions grouped by route segment
+app.post('/collisionsByRouteSegment', async (req, res) => {
+    const geom = req.body;
+    
+    if (!geom) {
+        console.log("No geom request")
+        return res.status(400).send('Missing required "geom" in request body');
+    }
+
+    try {
+        // Fixed query with proper parameterization and correct coordinate order
+        const query = `
+            SELECT 	hour_0, hour_1, hour_2, hour_3, hour_4, hour_5
+                    hour_6, hour_7, hour_8, hour_9, hour_10, hour_11,
+                    hour_12, hour_13, hour_14, hour_15, hour_16, hour_17,
+                    hour_18, hour_19, hour_20, hour_21, hour_22, hour_23,
+                    route_id, ST_AsGeoJSON(geom) as geojson
+            FROM accidents_by_segment_hourly
+            WHERE ST_Intersects(
+                ST_SetSRID(ST_GeomFromGeoJSON($1), 4326),
+                ST_FlipCoordinates(geom)
+            )
+        `;
+        const result = await client.query(query, [JSON.stringify(geom)]);
+        
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('X-Total-Count', result.rows.length);
+        
+        res.json(result.rows);
+
+    } catch (err) {
+        console.error('Error querying the database:', err);
+        
+        // More detailed error handling
+        if (err.code === '22P02' || err.code === '22023') {
+            return res.status(400).send('Invalid geometry format');
+        }
+        
+        res.status(500).send('Internal Server Error');
+    }
+});
+
 // Add a simple test endpoint
 app.get('/test', (req, res) => {
     res.json({ message: 'Server is running!' });
@@ -182,6 +224,7 @@ app.listen(PORT, () => {
     console.log('  POST /collisions');
     console.log('  POST /collisionsByHour');
     console.log('  POST /collisionsByDayOfWeek');
+    console.log('  POST /collisionsByRouteSegment');
     console.log('  GET /test');
 });
 

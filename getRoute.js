@@ -242,6 +242,37 @@ async function getAccidentsOnRouteByDayOfWeek(route) {
       }
 }
 
+async function getAccidentsOnRouteByRouteSegments(route) {
+    const data = route.routes
+    const main = data[0]
+    const first_main_leg = main.legs[0].points
+    console.log(first_main_leg)
+    const coordinates = first_main_leg.map(dict => Object.values(dict));
+    var routeLine = turf.lineString(coordinates)
+    var buffered = turf.buffer(routeLine, 0.038, { units: "kilometers" });
+    console.log(buffered)
+    var geom = JSON.stringify(buffered.geometry)
+    try {
+        const response = await fetch(`http://localhost:3000/collisionsByRouteSegment`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: geom
+        });
+    
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+    
+        const data = await response.json();
+        console.log('Collisions By Route Segment By Hour/:', data);
+        return data;
+      } catch (error) {
+        console.error('Error fetching collisions:', error);
+      }
+}
 
 async function main() {
     try {
@@ -251,6 +282,7 @@ async function main() {
 
         var accidentsByHour = await getAccidentsOnRouteByHour(routeData["routes"][0]);
         var accidentsByDOW = await getAccidentsOnRouteByDayOfWeek(routeData["routes"][0]);
+        var accidentsBySegments = await getAccidentsOnRouteByRouteSegments(routeData["routes"][0]);
     } catch (error) {
         console.error("Error in main execution:", error);
     }
