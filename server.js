@@ -179,7 +179,7 @@ app.post('/collisionsByRouteSegment', async (req, res) => {
                     hour_6, hour_7, hour_8, hour_9, hour_10, hour_11,
                     hour_12, hour_13, hour_14, hour_15, hour_16, hour_17,
                     hour_18, hour_19, hour_20, hour_21, hour_22, hour_23,
-                    route_id, ST_AsGeoJSON(geom) as geojson
+                    route_id, ST_AsGeoJSON(geom) as geojson, total_accidents
             FROM accidents_by_segment_hourly
             WHERE ST_Intersects(
                 ST_SetSRID(ST_GeomFromGeoJSON($1), 4326),
