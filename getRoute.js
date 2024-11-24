@@ -131,23 +131,35 @@ async function getAccidentsOnRoute(route) {
       }
 }
 
-async function routeSelection(routes, accidents) {
-    console.log(routes["routes"].length)
+async function routeSelection(routes, accidents, accidentsHourly) {
+    console.log(routes["routes"][0]["summary"]);
     const currentDate = new Date();
     const currentHour = currentDate.getHours();
-    
-    
+
+    var minTravelTime;
+    for (let i = 0; i < routes["routes"].length; i++) {
+        if (i == 0) {
+           minTravelTime = routes["routes"][i]["summary"]["travelTimeInSeconds"];
+        } else {
+            if (minTravelTime > routes["routes"][i]["summary"]["travelTimeInSeconds"]) {
+                minTravelTime = routes["routes"][i]["summary"]["travelTimeInSeconds"];
+            }
+        }
+    }
 
     for (let i = 0; i < routes["routes"].length; i++) {
         var X = routes["routes"][i]["summary"]["travelTimeInSeconds"];
         var Y = routes["routes"][i]["summary"]["trafficDelayInSeconds"];
-        var Z = Y / (X - Y);
         var L = routes["routes"][i]["summary"]["trafficLengthInMeters"];
+        var R = routes["routes"][i]["summary"]["lengthInMeters"];
 
-        console.log("X: "+X)
-        console.log("Y: "+Y)
-        console.log("Z: "+Z)
-        console.log("L: "+L)
+        var travelTerm = minTravelTime / X;
+        var relTraffic = Y / (X - Y);
+        var beta = 1 + (L / R);
+        var trafficTerm = 1 + Math.log10(1-(beta * relTraffic));
+        var trafficIndex = (travelTerm + trafficTerm) / 2;
+
+        console.log(trafficIndex)
 
     }
     
@@ -166,10 +178,9 @@ async function routeSelection(routes, accidents) {
     var M = (100 * (actHrCol - expHrCol) / expHrCol).toFixed(2);
     var moreDanger = M > 0;
     
-    console.log("K: "+K)
-    console.log("M: "+M)
-    console.log(moreDanger)
-
+    console.log("K: "+K);
+    console.log("M: "+M);
+    console.log(moreDanger);
 }
 
 async function getAccidentsOnRouteByHour(route) {
@@ -244,7 +255,7 @@ async function main() {
         const accidentData = await getAccidentsOnRoute(routeData);
         var accidentsByHour = await getAccidentsOnRouteByHour(routeData);
         var accidentsByDOW = await getAccidentsOnRouteByDayOfWeek(routeData);
-        await routeSelection(routeData, accidentData)
+        await routeSelection(routeData, accidentData, accidentsByHour);
     } catch (error) {
         console.error("Error in main execution:", error);
     }
