@@ -7,6 +7,7 @@ import {
     getAccidentsOnRouteByDayOfWeek,
     getRouteRankings,
     getBestRoute,
+    convertAddressToCoordinates,
 } from "./getRoute.js";
 
 import { createBarChart } from "./createHourlyBarChart.js";
@@ -58,8 +59,30 @@ form.addEventListener("submit", function (event) {
         data[key] = value;
     });
     console.log(data);
-    var pointA = data[pointA];
-    var pointB = data[pointB];
+    let streetNumA = encodeURIComponent(data[streetNumA]);
+    let streetNameA = encodeURIComponent(data[streetNameA]);
+    let streetNumB = encodeURIComponent(data[streetNumB]);
+    let streetNameB = encodeURIComponent(data[streetNameB]);
+
+    console.log("getting coordinates....");
+    if (streetNumA === undefined) {
+        streetNumA = encodeURIComponent("225");
+        streetNameA = encodeURIComponent("North Avenue");
+    }
+    if (streetNumB === undefined) {
+        streetNumB = encodeURIComponent("1000");
+        streetNameB = encodeURIComponent("Robert E. Lee Blvd");
+    }
+    console.log(streetNumA);
+    console.log(streetNameA);
+    console.log(streetNumB);
+    console.log(streetNameB);
+    const coordinatesA = convertAddressToCoordinates(streetNumA, streetNameA);
+    const coordinatesB = convertAddressToCoordinates(streetNumB, streetNameB);
+    console.log(coordinatesA);
+    console.log(coordinatesB);
+    var pointA = coordinatesA["lat"] + "," + coordinatesA["lon"];
+    var pointB = coordinatesB["lat"] + "," + coordinatesB["lon"];
     if (pointA === undefined) {
         pointA = "34.00635229451376,-84.42516328702436";
     }
@@ -67,7 +90,7 @@ form.addEventListener("submit", function (event) {
         pointB = "34.0533754844467,-84.45465522830254";
     }
     // Process the data using a function
-    main(pointA, pointB);
+    // main(pointA, pointB);
 });
 
 // // Execute the main function

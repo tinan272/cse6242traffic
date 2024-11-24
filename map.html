@@ -88,25 +88,27 @@
                 display: flex;
                 flex-direction: row;
             }
+            form {
+                display: flex;
+                flex-direction: column;
+            }
         </style>
     </head>
     <body>
         <h1 class="roboto-bold center">SafeMaps: A Safer Way To Navigate</h1>
         <form class="center flexgap" id="input">
-            <label for="pointA">Point A Coordinates:</label>
-            <input
-                type="text"
-                id="pointA"
-                name="pointA"
-                placeholder="33.777,-84.395"
-            />
-            <label for="pointB">Point B Coordinates:</label>
-            <input
-                type="text"
-                id="pointB"
-                name="pointB"
-                placeholder="34.053, -84.455"
-            />
+            <div id="pointA">
+                <label for="streetNumA">Point A Street Number:</label>
+                <input type="text" id="streetNumA" name="streetNumA" placeholder="225" />
+                <label for="streetNameA">Point A Street Name:</label>
+                <input type="text" id="streetNameA" name="streetNameA" placeholder="North Avenue" />
+            </div>
+            <div id="pointB">
+                <label for="streetNumB">Point B Street Number:</label>
+                <input type="text" id="streetNumB" name="streetNumB" placeholder="1000" />
+                <label for="streetNameB">Point B Street Name:</label>
+                <input type="text" id="streetNameB" name="streetNameB" placeholder="Robert E. Lee Blvd" />
+            </div>
             <input type="submit" value="Submit" />
         </form>
         <div class="map-container">

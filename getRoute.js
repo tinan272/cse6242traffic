@@ -246,16 +246,16 @@ async function getRouteRankings(routes) {
                 "% less prone to crashes.";
         }
 
-        console.log("For Route "+(i+1)+":")
+        console.log("For Route " + (i + 1) + ":");
         console.log("     Traffic Index: " + trafficIndex);
         console.log("     Safety Index: " + safetyIndex);
 
         var routeIndex = 0.8 * trafficIndex + 0.2 * safetyIndex;
         var routeText = trafficText + safetyText;
-      
+
         console.log("     Route Index: " + routeIndex);
         console.log("     Route Text: " + routeText);
-        routeRankings.push({"index": routeIndex, "text_summary": routeText});        
+        routeRankings.push({ index: routeIndex, text_summary: routeText });
     }
     return routeRankings;
 }
@@ -392,6 +392,33 @@ async function getAccidentsOnRouteByRouteSegments(route) {
     }
 }
 
+async function convertAddressToCoordinates(streetNumber, streetName) {
+    console.log("converting...");
+    const versionNumber = "2";
+    const ext = "json";
+    const countryCode = "US";
+    const countrySubdivision = "Georgia";
+    const url = `https://${baseURL}/search/${versionNumber}/structuredGeocode.${ext}?key=${apiKey}&countryCode=${countryCode}&streetNumber=${streetNumber}&streetName=${streetName}&countrySubdivision=${countrySubdivision}`;
+    console.log(url);
+    try {
+        const data = await fetchAPI(url);
+        console.log("address conversion data");
+        console.log(data.results);
+        if (data.results) {
+            const coordinates = data.results[0].position;
+            console.log("------CONVERT ADDRESS------");
+            console.log(coordinates);
+            return coordinates;
+        } else {
+            console.log("No address found.");
+            return null;
+        }
+    } catch (error) {
+        console.error("Failed to fetch url:", error.message);
+        throw error;
+    }
+}
+
 export {
     getRoute,
     getAccidentsOnRoute,
@@ -401,4 +428,5 @@ export {
     getAccidentsOnRouteByDayOfWeek,
     getRouteRankings,
     getBestRoute,
+    convertAddressToCoordinates,
 };
