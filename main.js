@@ -11,7 +11,7 @@ import {
 } from "./getRoute.js";
 
 import { clearBarChart, createBarChart } from "./createHourlyBarChart.js";
-import { addRoute, showLegend, createMap, drawSegments, resetMap } from "./getMap.js";
+import { addRoute, showLegend, createMap, drawSegments, resetMap, drawRoute } from "./getMap.js";
 
 async function main(pointA, pointB) {
     try {
@@ -37,6 +37,7 @@ async function main(pointA, pointB) {
         );
         createBarChart(accidentsByHour);
         addRoute(accidentsBySegments, pointA, pointB);
+        drawRoute(routeData["routes"][0]);
         drawSegments(accidentsBySegments)
         // for (const segment of accidentsBySegments) {
         //     const geoJsonString = segment["geojson"];

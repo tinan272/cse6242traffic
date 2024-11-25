@@ -54,7 +54,6 @@ const routeHighlightStyling = {
 
 let currentRouteGroup = null;
 let currPopUp = null;
-let groups = []
 
 function calculateRoute(origin, destination, waypoints = []) {
     if (!verifyMap()) return;
@@ -136,51 +135,50 @@ function calculateRoute(origin, destination, waypoints = []) {
         console.log(result.routes);
         if (result.routes.length) {
             const group = new H.map.Group();
-            groups.push(group)
 
             // Process each section of the route
-            result.routes[0].sections.forEach((section, index) => {
-                const lineString = H.geo.LineString.fromFlexiblePolyline(
-                    section.polyline
-                );
-                const routeData = {
-                    distance: section.summary.length / 1000, // km
-                    duration: Math.round(section.summary.duration / 60), // minutes
-                    index: index,
-                    polyline: lineString,
-                    startPnt: allPoints[index],
-                    endPnt: allPoints[index + 1],
-                    waypoints: waypoints,
-                    accident_count: allPoints[index]?.accident_count || 0,
-                };
+            // result.routes[0].sections.forEach((section, index) => {
+            //     const lineString = H.geo.LineString.fromFlexiblePolyline(
+            //         section.polyline
+            //     );
+            //     const routeData = {
+            //         distance: section.summary.length / 1000, // km
+            //         duration: Math.round(section.summary.duration / 60), // minutes
+            //         index: index,
+            //         polyline: lineString,
+            //         startPnt: allPoints[index],
+            //         endPnt: allPoints[index + 1],
+            //         waypoints: waypoints,
+            //         accident_count: allPoints[index]?.accident_count || 0,
+            //     };
                 // Define the route line
-                const routeLine = new H.map.Polyline(lineString, {
-                    style: {
-                        lineWidth: 4,
-                        fillColor: "white",
-                        strokeColor: "rgba(255, 255, 255, 1)",
-                        lineDash: [0, 2],
-                        lineTailCap: "arrow-tail",
-                        lineHeadCap: "arrow-head",
-                    },
-                    zIndex: 1,
-                });
+                // const routeLine = new H.map.Polyline(lineString, {
+                //     style: {
+                //         lineWidth: 4,
+                //         fillColor: "white",
+                //         strokeColor: "rgba(255, 255, 255, 1)",
+                //         lineDash: [0, 2],
+                //         lineTailCap: "arrow-tail",
+                //         lineHeadCap: "arrow-head",
+                //     },
+                //     zIndex: 1,
+                // });
 
-                const routeOutlineLine = new H.map.Polyline(lineString, {
-                    style: {
-                        lineWidth: 4,
-                        strokeColor: "rgba(0, 128, 255, 0.7)",
-                        lineTailCap: "arrow-tail",
-                        lineHeadCap: "arrow-head",
-                    },
-                    zIndex: 0,
-                });
-                routeLine.setData(routeData);
-                routeLine.addEventListener("pointerenter", onEnter);
-                routeLine.addEventListener("pointerleave", onLeave);
-                routeLine.addEventListener("tap", onClick);
-                group.addObjects([routeOutlineLine, routeLine]);
-            });
+                // const routeOutlineLine = new H.map.Polyline(lineString, {
+                //     style: {
+                //         lineWidth: 4,
+                //         strokeColor: "rgba(0, 128, 255, 0.7)",
+                //         lineTailCap: "arrow-tail",
+                //         lineHeadCap: "arrow-head",
+                //     },
+                //     zIndex: 0,
+                // });
+                // routeLine.setData(routeData);
+                // routeLine.addEventListener("pointerenter", onEnter);
+                // routeLine.addEventListener("pointerleave", onLeave);
+                // routeLine.addEventListener("tap", onClick);
+                // group.addObjects([routeOutlineLine, routeLine]);
+            // });
 
             const startMarker = new H.map.Marker({
                 lat: origin.latitude,
@@ -207,11 +205,50 @@ function calculateRoute(origin, destination, waypoints = []) {
         alert(error.message);
     });
 }
+export function drawRoute(route) {
+    
+    const group = new H.map.Group();
+        // Define the route line
+    const first_main_leg = route.legs[0].points;
+    const coordinates = first_main_leg.map((dict) => Object.values(dict));
+    console.log(coordinates)
+    const lineString = new H.geo.LineString();
+
+    // Add coordinates to the LineString
+    coordinates.forEach(coord => {
+        lineString.pushLatLngAlt(coord[0], coord[1]); // Lat, Lng
+    });
+
+    const routeLine = new H.map.Polyline(lineString, {
+        style: {
+            lineWidth: 6,
+            fillColor: "white",
+            strokeColor: "rgba(255, 255, 255, 1)",
+            lineDash: [0, 2],
+            lineTailCap: "arrow-tail",
+            lineHeadCap: "arrow-head",
+        },
+    });
+
+    const routeOutlineLine = new H.map.Polyline(lineString, {
+        style: {
+            lineWidth: 8,
+            strokeColor: "rgba(0, 128, 255, 0.7)",
+            lineTailCap: "arrow-tail",
+            lineHeadCap: "arrow-head",
+        },
+    });
+    routeLine.addEventListener("pointerenter", onEnter);
+    routeLine.addEventListener("pointerleave", onLeave);
+    routeLine.addEventListener("tap", onClick);
+    group.addObjects([routeOutlineLine, routeLine]);
+
+    map.addObject(group);
+}
 
 export function drawSegments(segments) {
     
     const group = new H.map.Group();
-    groups.push(group)
     for (const segment of segments) {
         // Define the route line
         const geoJson = JSON.parse(segment.geojson)
