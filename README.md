@@ -67,8 +67,8 @@ CREATE TABLE IF NOT EXISTS public.collisions
     CONSTRAINT collisions_pkey PRIMARY KEY ("Collision ID")
 )
 ```
- - Run `/CODE/import_csv.py` to import csv file into created table
- - If you run into issues with the import script, you can alternatively run `/CODE/Collisions Dataset.sql` to load a smaller subset of data into the created table
+ - From the `/CODE` directory, run `import_csv.py` to import csv file into created table
+ - If you run into issues with the import script, you can alternatively run `/CODE/Collisions Dataset.sql` from the PSQL Tool on pgAdmin4 to load a smaller subset of data into the created table
  - In pgAdmin4 again, create table for segmented collisions data with the following SQL statement:
 ```
 CREATE TABLE IF NOT EXISTS public.accidents_by_segment_hourly
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS public.accidents_by_segment_hourly
     total_accidents text COLLATE pg_catalog."default"
 )
 ```
- - Run `/CODE/accidents_by_segment_hourly.sql` to load data into created table
+ - From the PSQL Tool on pgAdmin4, run `/CODE/accidents_by_segment_hourly.sql` to load data into created table
 
 ## 3. Execution
 From the `/CODE` directory, run:
