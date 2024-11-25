@@ -1,4 +1,4 @@
-const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain([0, 7000]);
+const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain([0, 1000]);
 const platform = new H.service.Platform({
     apikey: "wQndyHdPqoKFF6eE1ei474ph9GxP7ChUlA06sbeeQjQ",
 });
@@ -46,6 +46,7 @@ function verifyMap() {
     return true;
 }
 
+
 const routeHighlightStyling = {
     lineWidth: 5,
     strokeColor: "#FFFF00",
@@ -53,12 +54,10 @@ const routeHighlightStyling = {
 
 let currentRouteGroup = null;
 let currPopUp = null;
+let groups = []
 
 function calculateRoute(origin, destination, waypoints = []) {
     if (!verifyMap()) return;
-    if (currentRouteGroup) {
-        map.removeObject(currentRouteGroup);
-    }
     // Define allPoints array here
     const allPoints = [origin, ...waypoints, destination];
     const waypointMarkers = [];
@@ -75,27 +74,27 @@ function calculateRoute(origin, destination, waypoints = []) {
             waypoints.map((wp) => `${wp.latitude},${wp.longitude}`)
         );
 
-        waypoints.forEach((waypoint, index) => {
-            var waypointSVG = `<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
-            <rect stroke="white" fill="#FF6347" x="1" y="1" width="22" height="22" />
-            <text x="12" y="18" font-size="12pt" font-family="Arial" font-weight="bold" text-anchor="middle" fill="white">
-                ${index + 1}
-            </text>
-        </svg>`;
-            const waypointIcon = new H.map.Icon(waypointSVG, {
-                size: { w: 24, h: 24 },
-                anchor: { x: 12, y: 12 }, // Anchor the icon to the center
-            });
-            const waypointMarker = new H.map.Marker(
-                {
-                    lat: waypoint.latitude,
-                    lng: waypoint.longitude,
-                },
-                { icon: waypointIcon }
-            );
-            waypointMarker.setData(`Waypoint ${index + 1}`);
-            waypointMarkers.push(waypointMarker);
-        });
+        // waypoints.forEach((waypoint, index) => {
+        //     var waypointSVG = `<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+        //     <rect stroke="white" fill="#FF6347" x="1" y="1" width="22" height="22" />
+        //     <text x="12" y="18" font-size="12pt" font-family="Arial" font-weight="bold" text-anchor="middle" fill="white">
+        //         ${index + 1}
+        //     </text>
+        // </svg>`;
+        //     const waypointIcon = new H.map.Icon(waypointSVG, {
+        //         size: { w: 24, h: 24 },
+        //         anchor: { x: 12, y: 12 }, // Anchor the icon to the center
+        //     });
+        //     const waypointMarker = new H.map.Marker(
+        //         {
+        //             lat: waypoint.latitude,
+        //             lng: waypoint.longitude,
+        //         },
+        //         { icon: waypointIcon }
+        //     );
+        //     waypointMarker.setData(`Waypoint ${index + 1}`);
+        //     waypointMarkers.push(waypointMarker);
+        // });
         const originSVG =
             '<svg width="24" height="24" ' +
             'xmlns="http://www.w3.org/2000/svg">' +
@@ -137,6 +136,7 @@ function calculateRoute(origin, destination, waypoints = []) {
         console.log(result.routes);
         if (result.routes.length) {
             const group = new H.map.Group();
+            groups.push(group)
 
             // Process each section of the route
             result.routes[0].sections.forEach((section, index) => {
@@ -156,18 +156,24 @@ function calculateRoute(origin, destination, waypoints = []) {
                 // Define the route line
                 const routeLine = new H.map.Polyline(lineString, {
                     style: {
-                        strokeColor: colorScale(routeData.accident_count),
-                        lineWidth: 6,
-                        lineJoin: "round",
+                        lineWidth: 4,
+                        fillColor: "white",
+                        strokeColor: "rgba(255, 255, 255, 1)",
+                        lineDash: [0, 2],
+                        lineTailCap: "arrow-tail",
+                        lineHeadCap: "arrow-head",
                     },
+                    zIndex: 1,
                 });
 
                 const routeOutlineLine = new H.map.Polyline(lineString, {
                     style: {
-                        strokeColor: "#000000",
-                        lineWidth: 8,
-                        lineJoin: "round",
+                        lineWidth: 4,
+                        strokeColor: "rgba(0, 128, 255, 0.7)",
+                        lineTailCap: "arrow-tail",
+                        lineHeadCap: "arrow-head",
                     },
+                    zIndex: 0,
                 });
                 routeLine.setData(routeData);
                 routeLine.addEventListener("pointerenter", onEnter);
@@ -200,6 +206,52 @@ function calculateRoute(origin, destination, waypoints = []) {
     router.calculateRoute(routingParameters, onResult, function (error) {
         alert(error.message);
     });
+}
+
+export function drawSegments(segments) {
+    
+    const group = new H.map.Group();
+    groups.push(group)
+    for (const segment of segments) {
+        // Define the route line
+        const geoJson = JSON.parse(segment.geojson)
+        const lineString = new H.geo.LineString();
+
+        // Add coordinates to the LineString
+        geoJson.coordinates[0].forEach(coord => {
+            lineString.pushLatLngAlt(coord[1], coord[0]); // Lat, Lng
+        });
+
+        const routeLine = new H.map.Polyline(lineString, {
+            style: {
+                strokeColor: colorScale(segment.total_accidents),
+                lineWidth: 6,
+                lineJoin: "round",
+            },
+        });
+
+        const routeOutlineLine = new H.map.Polyline(lineString, {
+            style: {
+                strokeColor: "#000000",
+                lineWidth: 8,
+                lineJoin: "round",
+            },
+        });
+        routeLine.addEventListener("pointerenter", onEnter);
+        routeLine.addEventListener("pointerleave", onLeave);
+        routeLine.addEventListener("tap", onClick);
+        group.addObjects([routeOutlineLine, routeLine]);
+
+        map.addObject(group);
+
+        map.getViewModel().setLookAtData({
+            bounds: group.getBoundingBox(),
+        });
+    }
+}
+
+export function resetMap() {
+    map.removeObjects(map.getObjects());
 }
 
 function onEnter(event) {
@@ -276,29 +328,31 @@ function formatCoordinates(point) {
     return `(${point.latitude.toFixed(4)}, ${point.longitude.toFixed(4)})`;
 }
 
-function addRoute(geojson) {
+function addRoute(geojson, pointA, pointB) {
     const features = [];
-    for (const segment of geojson) {
-        const geoJsonString = segment["geojson"];
-        const segment_dict = JSON.parse(geoJsonString);
-        const coordinates = segment_dict["coordinates"][0][0];
-        const total_accidents = segment["total_accidents"];
-        const feat = {
-            type: "Feature",
-            properties: {
-                latitude: coordinates[1],
-                longitude: coordinates[0],
-                accident_count: total_accidents,
-            },
-        };
-        features.push(feat);
-    }
-    const origin = features[0]["properties"];
-    const destination = features[features.length - 1]["properties"];
-    const waypoints = features
-        .slice(1, -1)
-        .map((feature) => feature["properties"]);
-    calculateRoute(origin, destination, waypoints);
+    // for (const segment of geojson) {
+    //     const geoJsonString = segment["geojson"];
+    //     const segment_dict = JSON.parse(geoJsonString);
+    //     const coordinates = segment_dict["coordinates"][0][0];
+    //     const total_accidents = segment["total_accidents"];
+    //     const feat = {
+    //         type: "Feature",
+    //         properties: {
+    //             latitude: coordinates[1],
+    //             longitude: coordinates[0],
+    //             accident_count: total_accidents,
+    //         },
+    //     };
+    //     features.push(feat);
+    // }
+    const pointACoord = pointA.split(",")
+    const pointBCoord = pointB.split(",")
+    const origin = { latitude: pointACoord[0], longitude: pointACoord[1]};
+    const destination = { latitude: pointBCoord[0], longitude: pointBCoord[1]};
+    // const waypoints = features
+    //     .slice(1, -1)
+    //     .map((feature) => feature["properties"]);
+    calculateRoute(origin, destination);
 }
 const features = {
     features: [
@@ -349,7 +403,7 @@ function showLegend() {
             "http://www.w3.org/2000/svg",
             "stop"
         );
-        const value = i * (7000 / stops);
+        const value = i * (1000 / stops);
         stop.setAttribute("offset", `${(i / stops) * 100}%`);
         stop.setAttribute("stop-color", colorScale(value));
         linearGradient.appendChild(stop);
@@ -386,7 +440,7 @@ function showLegend() {
     maxLabel.setAttribute("x", "170");
     maxLabel.setAttribute("y", "45");
     maxLabel.setAttribute("font-size", "12");
-    maxLabel.textContent = "7000";
+    maxLabel.textContent = "1000";
     labels.appendChild(minLabel);
     labels.appendChild(maxLabel);
     svg.appendChild(labels);

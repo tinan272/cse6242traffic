@@ -67,4 +67,11 @@ async function createBarChart(accidentsByHour) {
     console.log("bar chart done");
 }
 
-export {createBarChart};
+function clearBarChart() {
+    var chart = document.getElementById("chart")
+    if (chart.hasChildNodes()) {
+        chart.firstElementChild.remove()
+    }
+}
+
+export {createBarChart, clearBarChart};

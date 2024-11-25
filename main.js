@@ -10,8 +10,8 @@ import {
     convertAddressToCoordinates,
 } from "./getRoute.js";
 
-import { createBarChart } from "./createHourlyBarChart.js";
-import { addRoute, showLegend, createMap } from "./getMap.js";
+import { clearBarChart, createBarChart } from "./createHourlyBarChart.js";
+import { addRoute, showLegend, createMap, drawSegments, resetMap } from "./getMap.js";
 
 async function main(pointA, pointB) {
     try {
@@ -36,7 +36,18 @@ async function main(pointA, pointB) {
             routeData["routes"][0]
         );
         createBarChart(accidentsByHour);
-        addRoute(accidentsBySegments);
+        addRoute(accidentsBySegments, pointA, pointB);
+        drawSegments(accidentsBySegments)
+        // for (const segment of accidentsBySegments) {
+        //     const geoJsonString = segment["geojson"];
+        //     const segment_dict = JSON.parse(geoJsonString);
+        //     const coordinateX = segment_dict["coordinates"][0][0];
+        //     const coordinateY = segment_dict["coordinates"][0][segment_dict["coordinates"][0].length - 1];
+        //     var pointX = `${coordinateX[0]},${coordinateX[1]}`
+        //     var pointY = `${coordinateY[0]},${coordinateY[1]}`
+        //     console.log(pointY)
+        //     ([], pointX, pointY)
+        // }
     } catch (error) {
         console.error("Error in main execution:", error);
     }
@@ -50,6 +61,8 @@ form.addEventListener("submit", async function (event) {
     // Prevent the default form submission behavior
     event.preventDefault();
 
+    resetMap();
+    clearBarChart();
     // Capture the form data
     const formData = new FormData(form);
 
