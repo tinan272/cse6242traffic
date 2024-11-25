@@ -37,6 +37,7 @@ We need PostGIS to load the accident dataset so we can efficiently query acciden
  - Use the truncated (100000 rows) dataset `/CODE/Collisions Dataset.csv` already in the repository, or download your own Numetric collisions data as csv from AASHTOWare.
  - If applicable, rename downloaded file to `Collisions Dataset.csv` and move to the `/CODE` directory
  - To set up PostGIS, watch this video: https://www.youtube.com/watch?v=tTUM9XfDvqk (NOTE: Name the database you create "accidents")
+ - Edit import_csv.py and server.js to use your postgres password
  - Open pgAdmin4
  - Create table for collisions data with the following SQL statement:
 ```
